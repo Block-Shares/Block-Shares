@@ -1,0 +1,7 @@
+1. Only the owner can mint dTSLA
+2. Anyone can redeem dTSLA for USDC for the "the stablecoin" of choice 
+3. chainlink functions will kick off a TSLA sell for a USDC, and then send it to the contract
+4. the user will then have to then call the finishRedeem to get their USDC
+
+
+// remeber to install Erc20 with openZeppelin using {forge install openzeppelin/openzeppelin-contracts --no-commit}

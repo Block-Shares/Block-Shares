@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@chainlink/functions-toolkit": "^0.3.2",
+    "solc": "^0.8.20"
+  },
+  "scripts": {
+    "simulate": "source .env && node /Functions/stimulators/alpacaMintSimulator.js",
+    "uploadScrets": "source .env && node ./Functions/uploadScrets.js"
+  }
+}
