@@ -14,15 +14,15 @@ contract TokenPrice is FunctionsClient {
 
     address s_functionsRouter;
     bytes32 s_donID;
-    uint32 constant gasLimit = 300000;
-    uint256 constant PRICE_PRECISION = 1e16;
-
-    bytes32 public s_lastRequestId;
-    bytes public s_lastResponse;
-    bytes public s_lastError;
+    string private s_PriceSource;
     uint64 private i_subscriptionId;
 
-    string private s_PriceSource;
+    uint32 constant GAS_LIMIT = 300000;
+    uint256 constant PRICE_PRECISION = 1e16;
+
+    bytes32 private s_lastRequestId;
+    bytes private s_lastResponse;
+    bytes private s_lastError;
 
     uint256 public current_price;
 
@@ -41,7 +41,7 @@ contract TokenPrice is FunctionsClient {
         FunctionsRequest.Request memory req;
         req._initializeRequestForInlineJavaScript(s_PriceSource); // Initialize the request with JS code
         req._setArgs(args);
-        s_lastRequestId = _sendRequest(req._encodeCBOR(), i_subscriptionId, gasLimit, s_donID);
+        s_lastRequestId = _sendRequest(req._encodeCBOR(), i_subscriptionId, GAS_LIMIT, s_donID);
         return s_lastRequestId;
     }
 

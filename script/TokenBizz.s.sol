@@ -5,12 +5,18 @@ import {Script, console} from "forge-std/Script.sol";
 import {HelperConfig} from "./HelperConfig.sol";
 import {TokenBizz} from "../src/Defi.sol";
 import {IGetTslaReturnTypes} from "../src/interfaces/ReturnType.sol";
+import {RedeemNvda} from "../src/tokens/RedeemNvda.sol";
+import {RedeemTsla} from "../src/tokens/RedeemTsla.sol";
+import {RedeemGoog} from "../src/tokens/RedeemGoog.sol";
 
 contract DeployDTsla is Script {
     string constant alpacaMintSource = "Functions/sources/getTokenAmount.js";
     string constant alpacaRedeemSource = "Functions/sources/sellTokenAndSendUsdc.js";
     string constant priceSource = "Functions/sources/tokenPrice.js";
-    TokenBizz dTsla;
+    TokenBizz tokenBizz;
+    RedeemNvda redeemNvda;
+    RedeemTsla redeemTsla;
+    RedeemGoog redeemGoog;
 
     function run() external {
         // Get params
@@ -22,7 +28,17 @@ contract DeployDTsla is Script {
         tokenReturnType.priceSource = vm.readFile(priceSource);
 
         vm.startBroadcast();
-        dTsla = new TokenBizz(tokenReturnType);
+        tokenBizz = new TokenBizz();
+        redeemGoog = new RedeemGoog(tokenReturnType);
+        redeemNvda = new RedeemNvda(tokenReturnType);
+        redeemTsla = new RedeemTsla(tokenReturnType);
+        console.log(address(redeemGoog));
+        console.log(address(redeemNvda));
+        console.log(address(redeemTsla));
+        tokenBizz.setdGoog(address(redeemGoog));
+        tokenBizz.setdNvda(address(redeemNvda));
+        tokenBizz.setdTsla(address(redeemTsla));
+        console.log(address(tokenBizz));
         vm.stopBroadcast();
     }
 

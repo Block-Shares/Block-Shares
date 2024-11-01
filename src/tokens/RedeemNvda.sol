@@ -17,45 +17,24 @@ contract RedeemNvda is FunctionsClient, ConfirmedOwner, Pausable, MintNvda, With
     using OracleLib for AggregatorV3Interface;
     using Strings for uint256;
 
-    address token_address;
-
-    uint32 private constant GAS_LIMIT = 300_000;
-
-    string s_redeemSource;
-
     mapping(bytes32 requestId => dTslaRequest request) private s_requestIdToRequest;
 
     uint256 private constant PRECISION = 1e18;
     uint256 constant USDC_DECIMAL = 6;
+    uint32 private constant GAS_LIMIT = 300_000;
 
-    constructor(
-        uint64 subId,
-        string memory redeemSource,
-        string memory priceSource,
-        string memory mintSource,
-        address functionsRouter,
-        bytes32 donId,
-        address usdcPriceFeed,
-        uint64 secretVersion,
-        uint8 secretSlot
-    )
-        WithDrawalHandler()
-        MintNvda(i_subId, mintSource, functionsRouter, donId, usdcPriceFeed, secretVersion, secretSlot)
-    {
-        s_redeemSource = redeemSource;
-        s_priceSource = priceSource;
-        s_mintSource = mintSource;
-        s_functionsRouter = functionsRouter;
-        s_donID = donId;
-        i_usdcUsdFeed = usdcPriceFeed;
-        i_subId = subId;
+    GetTokenBizzReturnType private returnType;
 
-        s_secretVersion = secretVersion;
-        s_secretSlot = secretSlot;
+    constructor(GetTokenBizzReturnType memory _returnType) WithDrawalHandler() MintNvda(_returnType) {
+        returnType = _returnType;
     }
 
-    function sendRedeemRequest(uint256 amountdNvda) external whenNotPaused returns (bytes32 requestId) {
-        if (balanceOf(msg.sender) < (amountdNvda * 1e18)) {
+    function sendRedeemRequest(uint256 amountdNvda, address sender)
+        external
+        whenNotPaused
+        returns (bytes32 requestId)
+    {
+        if (balanceOf(sender) < (amountdNvda * 1e18)) {
             revert("insufficient asset balance");
         }
 
@@ -66,7 +45,7 @@ contract RedeemNvda is FunctionsClient, ConfirmedOwner, Pausable, MintNvda, With
 
         // Internal Effects
         FunctionsRequest.Request memory req;
-        req._initializeRequestForInlineJavaScript(s_redeemSource); // Initialize the request with JS code
+        req._initializeRequestForInlineJavaScript(returnType.redeem_sourceCode); // Initialize the request with JS code
         string[] memory args = new string[](3);
         args[0] = amountdNvda.toString();
         // The transaction will fail if it's outside of 2% slippage
@@ -76,11 +55,11 @@ contract RedeemNvda is FunctionsClient, ConfirmedOwner, Pausable, MintNvda, With
 
         // Send the request and store the request ID
         // We are assuming requestId is unique
-        requestId = _sendRequest(req._encodeCBOR(), i_subId, GAS_LIMIT, s_donID);
-        s_requestIdToRequest[requestId] = dTslaRequest(amountdNvda, msg.sender);
+        requestId = _sendRequest(req._encodeCBOR(), returnType.subId, GAS_LIMIT, returnType.donId);
+        s_requestIdToRequest[requestId] = dTslaRequest(amountdNvda, sender);
 
         // External Interactions
-        _burn(msg.sender, amountdNvda);
+        _burn(sender, amountdNvda);
     }
 
     /**

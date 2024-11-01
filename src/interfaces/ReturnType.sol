@@ -13,4 +13,11 @@ interface IGetTslaReturnTypes {
         string redeem_sourceCode;
         string priceSource;
     }
+
+    struct initializationVariables {
+        address s_functionsRouter;
+        bytes32 s_donID;
+        string s_PriceSource;
+        uint64 i_subscriptionId;
+    }
 }

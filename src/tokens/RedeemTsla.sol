@@ -17,45 +17,24 @@ contract RedeemTsla is FunctionsClient, ConfirmedOwner, Pausable, MintTsla, With
     using OracleLib for AggregatorV3Interface;
     using Strings for uint256;
 
-    address token_address;
-
-    uint32 private constant GAS_LIMIT = 300_000;
-    // address constant USDC_CONTRACT = 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d;
-
-    string s_redeemSource;
+    GetTokenBizzReturnType private returnType;
 
     mapping(bytes32 requestId => dTslaRequest request) private s_requestIdToRequest;
 
     uint256 private constant PRECISION = 1e18;
     uint256 constant USDC_DECIMAL = 6;
-    constructor(
-        uint64 subId,
-        string memory redeemSource,
-        string memory priceSource,
-        string memory mintSource,
-        address functionsRouter,
-        bytes32 donId,
-        address usdcPriceFeed,
-        uint64 secretVersion,
-        uint8 secretSlot
-    )
-        WithDrawalHandler()
-        MintTsla(i_subId, mintSource, functionsRouter, donId, usdcPriceFeed, secretVersion, secretSlot)
-    {
-        s_redeemSource = redeemSource;
-        s_priceSource = priceSource;
-        s_mintSource = mintSource;
-        s_functionsRouter = functionsRouter;
-        s_donID = donId;
-        i_usdcUsdFeed = usdcPriceFeed;
-        i_subId = subId;
+    uint32 private constant GAS_LIMIT = 300_000;
 
-        s_secretVersion = secretVersion;
-        s_secretSlot = secretSlot;
+    constructor(GetTokenBizzReturnType memory _returnType) WithDrawalHandler() MintTsla(_returnType) {
+        returnType = _returnType;
     }
 
-    function sendRedeemRequest(uint256 amountdTsla) external whenNotPaused returns (bytes32 requestId) {
-        if (balanceOf(msg.sender) < (amountdTsla * 1e18)) {
+    function sendRedeemRequest(uint256 amountdTsla, address sender)
+        external
+        whenNotPaused
+        returns (bytes32 requestId)
+    {
+        if (balanceOf(sender) < (amountdTsla * 1e18)) {
             revert("insufficient asset balance");
         }
 
@@ -66,29 +45,21 @@ contract RedeemTsla is FunctionsClient, ConfirmedOwner, Pausable, MintTsla, With
 
         // Internal Effects
         FunctionsRequest.Request memory req;
-        req._initializeRequestForInlineJavaScript(s_redeemSource); // Initialize the request with JS code
+        req._initializeRequestForInlineJavaScript(returnType.redeem_sourceCode); // Initialize the request with JS code
         string[] memory args = new string[](3);
         args[0] = amountdTsla.toString();
-        // The transaction will fail if it's outside of 2% slippage
-        // This could be a future improvement to make the slippage a parameter by someone
         args[1] = amountNvdaInUsdc.toString();
         args[2] = "TSLA";
         req._setArgs(args);
 
         // Send the request and store the request ID
         // We are assuming requestId is unique
-        requestId = _sendRequest(req._encodeCBOR(), i_subId, GAS_LIMIT, s_donID);
-        s_requestIdToRequest[requestId] = dTslaRequest(amountdTsla, msg.sender);
+        requestId = _sendRequest(req._encodeCBOR(), returnType.subId, GAS_LIMIT, returnType.donId);
+        s_requestIdToRequest[requestId] = dTslaRequest(amountdTsla, sender);
 
-        // External Interactions
-        _burn(msg.sender, amountdTsla);
+        _burn(sender, amountdTsla);
     }
 
-    /**
-     * @notice Callback function for fulfilling a request
-     * @param requestId The ID of the request to fulfill
-     * @param response The HTTP response data
-     */
     function _fulfillRequest(bytes32 requestId, bytes memory response, bytes memory /* err */ )
         internal
         override(FunctionsClient, MintTsla)
@@ -97,18 +68,6 @@ contract RedeemTsla is FunctionsClient, ConfirmedOwner, Pausable, MintTsla, With
         _redeemFulFillRequest(requestId, response);
     }
 
-    /*//////////////////////////////////////////////////////////////
-                                INTERNAL
-    //////////////////////////////////////////////////////////////*/
-
-    /*
-     * @notice the callback for the redeem request
-     * At this point, USDC should be in this contract, and we need to update the user
-     * That they can now withdraw their USDC
-     *
-     * @param requestId - the requestId that was fulfilled
-     * @param response - the response from the request, it'll be the amount of USDC that was sent
-     */
     function _redeemFulFillRequest(bytes32 requestId, bytes memory response) internal {
         // This is going to have redemptioncoindecimals decimals
         uint256 usdcAmount = uint256(bytes32(response));

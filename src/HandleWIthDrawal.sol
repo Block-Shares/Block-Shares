@@ -13,11 +13,11 @@ contract WithDrawalHandler is Pausable {
 
     error dTSLA__RedemptionFailed();
 
-    function withdraw() external whenNotPaused {
-        uint256 amountToWithdraw = s_userToWithdrawalAmount[msg.sender];
+    function withdraw(address sender) external whenNotPaused {
+        uint256 amountToWithdraw = s_userToWithdrawalAmount[sender];
         s_userToWithdrawalAmount[msg.sender] = 0;
         // Send the user their USDC
-        bool succ = ERC20(USDC_CONTRACT).transfer(msg.sender, amountToWithdraw);
+        bool succ = ERC20(USDC_CONTRACT).transfer(sender, amountToWithdraw);
         if (!succ) {
             revert dTSLA__RedemptionFailed();
         }
