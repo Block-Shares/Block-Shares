@@ -1,9 +1,6 @@
-# BLOCKSHARES DOCUMENTATION
+# BLOCKSHARES PITCH DECK
 
-## TABLE OF CONTENTS
 
-1. *Introduction*
-   - Overview of BlockShares
 
 ## 1. INTRODUCTION
 
